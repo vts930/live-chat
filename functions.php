@@ -86,7 +86,7 @@
 						global $redis;
 							$user_id = $_SESSION['user']['id'];
 							$messages=$redis->hget("messages",$user_id);
-							
+							//
 							return $messages;
 
 					}
