@@ -1,12 +1,9 @@
 <?php
-	$db = new PDO('mysql:host=localhost;dbname=baigiamasis;charset=utf8', 'root', 'tarakonas');
-	//$db = new PDO('mysql:host=localhost;dbname=u606861065_bbd;charset=utf8', 'u606861065_bbd', 'vgtubakalauras');
 
 
 	function getLastConnections(){
-		global $db;
-		global $redis;
-		/*$query = $db->prepare('
+		
+		/*$query = getDatabase()->prepare('
 			SELECT 
 				uc.first_user_id, 
 				uc.second_user_id, 
@@ -38,7 +35,7 @@
 
 
 		$user_id = $_SESSION['user']['id'];
-		$query = $db->prepare('
+		$query = getDatabase()->prepare('
 			SELECT
 				u.id,
 				u.first_name,
@@ -65,9 +62,9 @@
 	}
 
 	function getAllUsers(){
-			global $db;
+			
 			$user_id = $_SESSION['user']['id'];
-			$query = $db->prepare('
+			$query = getDatabase()->prepare('
 				SELECT * FROM users WHERE id != :userId LIMIT 100
 			');
 			$query->bindValue(":userId", $user_id);
@@ -78,24 +75,35 @@
 	}
 
 	function getAllMessagesByUser($from_send){
-			global $UseRedis;
-
 				
-				if (isset($UseRedis)) 
-					{
-						global $redis;
-							$user_id = $_SESSION['user']['id'];
-							$messages=$redis->hget("messages",$user_id);
-							//
-							return $messages;
-
+				if (isRedis()) 
+					{						
+						$user_id = $_SESSION['user']['id'];
+						$from=$user_id-1;
+						$to=$user_id+1;						
+						$from2=$from_send -1 ;	
+						$to2=$from_send +1 ;
+						$to_send_messages = getRedis()->ZRANGEBYSCORE("messages","($from","($to");
+						$to_send_messages2 = getRedis()->ZRANGEBYSCORE("messages","($from2","($to2");
+						$to_send_messages_array = array();
+						foreach ($to_send_messages as $to_send_message) 
+						{
+							$decodes_to_send_message = json_decode($to_send_message,true);
+							array_push($to_send_messages_array, $decodes_to_send_message);				
+						}
+						foreach ($to_send_messages2 as $to_send_message) 
+						{
+							$decodes_to_send_message = json_decode($to_send_message,true);					
+							array_push($to_send_messages_array, $decodes_to_send_message);				
+						}
+						//var_dump($to_send_messages_array);
+						return $to_send_messages_array;	
 					}
 				else
-					{
-										
-						global $db;
+					{				
+					
 						$user_id = $_SESSION['user']['id'];
-						$query = $db->prepare('
+						$query = getDatabase()->prepare('
 							SELECT 
 								m.id,
 								m.message,
@@ -123,32 +131,39 @@
 	{	
 		if ($params) 
 		{
-			global $UseRedis;
-				if (isset($UseRedis)) 
+		
+				if (isRedis()) 
 					{
-						global $redis;
+						
 						$user_id = $_SESSION['user']['id'];
-						$test =json_encode(array(
-							'messageid' => 1, 
+						$array = array(
 							'message' =>  $params["message"],
 							'to_send' => $params["to_send"],
 							'from_send' => $user_id,							
-							'create_time' => '2012-12-12'
-							));
-						//var_dump($test);
-						$redis->hset("messages",$user_id,$test);
-						//$id = $db->lastInsertId();
-						
+							'create_time' => date('Y-m-d H:i:s'),
+							"id" => getRedis()->ZCOUNT("messages","-inf","+inf")+1	
+							);
+						$encode_message =json_encode($array);
+						$message = $params["message"];
+						$to_send = $params["to_send"];
+						$from_send = $user_id;
+						$create_time = date('Y-m-d H:i:s');
 
-						return getMessageById($user_id);
+						//$redis->LPUSH("messages:$user_id",$test);
+						
+						var_dump($array);
+						getRedis()->ZADD("messages",$params["to_send"],$encode_message);
+						
+						/*$redis->HMSET("messages", "message $message" ,"to_send $to_send", "from_send $from_send", "create_time $create_time");*/
+						return $array;
 					}
 				else
 					{
-						global $db;
+						
 
 						$user_id = $_SESSION['user']['id'];
 
-						$query = $db->prepare('
+						$query = getDatabase()->prepare('
 							INSERT INTO messages
 							(message, to_send, from_send) 
 							VALUES 
@@ -159,7 +174,7 @@
 						$query->bindValue(":from_send", $user_id);
 						$query->execute();
 
-						$id = $db->lastInsertId();
+						$id = getDatabase()->lastInsertId();
 
 						return getMessageById($id);
 
@@ -169,22 +184,26 @@
 	}
 
 	function getMessageById($id){
-		global $UseRedis;
-				if (isset($UseRedis)) 
+		
+				if (isRedis()) 
 					{
-						global $redis;
 						
-							$messages=$redis->hget("messages",(int)$id);
-							
-							
-							return $messages;
 						
+						$user_id = $_SESSION['user']['id'];
+						$messages=getRedis()->ZRANGE("messages",0,-1);
+						$testarray=array();
+						foreach ($messages as $messagesdecode) {
+							$decodemessages = json_decode($messagesdecode,true);
+							array_push($testarray, $decodemessages);							
+						}
+						
+						return $testarray;				
 					}
 					else
 					{
-						global $db;
+						
 
-						$query = $db->prepare('
+						$query = getDatabase()->prepare('
 							SELECT 
 								m.id,
 								m.message,
@@ -206,11 +225,17 @@
 	}
 
 	function getLastMessagesByUser($params){
-		global $db;
+		
+		if (isRedis()) {
+		 		# code...
+		 	} 	
+
+
+		
 
 		$user_id = $_SESSION['user']['id'];
 
-		$query = $db->prepare('
+		$query = getDatabase()->prepare('
 			SELECT 
 				m.id,
 				m.message,
@@ -233,13 +258,11 @@
 	}
 
 	function CheckUser($params){
-		global $db;
-
 		$email = $params['email'];
 		$password = $params['password'];
 
 		try {
-			$query = $db->prepare('
+			$query = getDatabase()->prepare('
 			SELECT * 
 			FROM users 
 			WHERE email = :email 
@@ -255,9 +278,7 @@
 	}
 
 	function GetUserInfoById($id){
-
-		global $db;
-		$query = $db->prepare('
+		$query = getDatabase()->prepare('
 			SELECT first_name,last_name,email,id
 			FROM users 
 			WHERE id= :id

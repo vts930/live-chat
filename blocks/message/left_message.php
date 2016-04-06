@@ -1,8 +1,8 @@
 <div class="panel panel-default col-sm-7 message_block" data-message-id="<?php echo $message['id'] ?>" style="float:left; padding:0 !important; background-color:#044BB5; color:#fff;" >
 	<div class="panel-heading">
-		<h6 style="margin:0 !important;">
-			<?php echo $message['to_first_name']." ".$message['to_last_name'] ?>
-		</h6>
+		
+			<?php //	echo $message['to_first_name']." ".$message['to_last_name'] ?>
+		</h6> 
 	</div>
 	<div class="panel-body ">
 		<span><i><?php echo $message["create_time"] ?></i></span>

@@ -4,7 +4,7 @@
     <?php $messages = getAllMessagesByUser($to_send_message) 
 
     ?>
-    <?php  foreach ($messages as $message): var_dump($message);?>
+    <?php foreach ($messages as $message): ?>
       <?php if ($message["from_send"] == $_SESSION['user']['id']): ?>
         <?php include("message/right_message.php") ?>
       <?php else: ?>
