@@ -66,10 +66,9 @@
 			if (isRedis()) {
 				
 				//$ifExist = isRedis()-> EXISTS("users"); 
-				
+					
 
 				if (isset($setUsersArrayRedis)) {
-
 					$getUsersArrayRedis = getRedis()->GET("users"); 
 					return $getUsersArrayRedis;
 				}
@@ -77,7 +76,7 @@
 				{
 					$user_id = $_SESSION['user']['id'];
 					$query = getDatabase()->prepare('
-						SELECT * FROM users WHERE id != :userId LIMIT 20000
+						SELECT * FROM users WHERE id != :userId LIMIT 100
 					');
 					$query->bindValue(":userId", $user_id);
 					$query->execute();
@@ -96,7 +95,7 @@
 			else{	
 				$user_id = $_SESSION['user']['id'];
 				$query = getDatabase()->prepare('
-					SELECT * FROM users WHERE id != :userId LIMIT 20000
+					SELECT * FROM users WHERE id != :userId LIMIT 100
 				');
 				$query->bindValue(":userId", $user_id);
 				$query->execute();							
@@ -106,12 +105,38 @@
 	function getAllMessagesByUser($from_send){
 				
 				if (isRedis()) 
-					{						
+					{				
+							
 						$user_id = $_SESSION['user']['id'];
-						$from=$user_id-1;
+						/*$from=$user_id-1;
 						$to=$user_id+1;						
 						$from2=$from_send -1 ;	
-						$to2=$from_send +1 ;
+						$to2=$from_send +1 ;*/
+
+							//$up =getRedis()->ZRANGEBYSCORE("messages_$user_id/$from_send",0,-1);
+						$firstKeyName = getRedis()->EXISTS("messages_$user_id/$from_send");
+						$secondKeyName = getRedis()->EXISTS("messages_$from_send/$user_id");
+						$to_send_messages_array = array();
+						if ($firstKeyName == true) {
+							$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$user_id/$from_send", 0, -1);
+							echo "pirmasGETKey";
+							foreach ($getAllConnectionsMesages as $getAllConnectionMessage) {
+								$decodes_to_send_message = json_decode($getAllConnectionMessage,true);
+								array_push($to_send_messages_array, $decodes_to_send_message);
+							}
+						}
+						elseif ($secondKeyName==true) {
+							$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$from_send/$user_id", 0, -1);
+							echo "antrasGETKey";
+							foreach ($getAllConnectionsMesages as $getAllConnectionMessage) 
+							{
+								$decodes_to_send_message = json_decode($getAllConnectionMessage,true);
+								array_push($to_send_messages_array, $decodes_to_send_message);
+							}
+						}		
+						
+						
+/*							
 						$to_send_messages = getRedis()->ZRANGEBYSCORE("messages:$user_id","($from2","($to2");
 						$to_send_messages2 = getRedis()->ZRANGEBYSCORE("messages:$from_send","($from","($to");
 						$to_send_messages_array = array();
@@ -134,8 +159,8 @@
 						    
 						}
 						array_multisort($volume, SORT_ASC, $to_send_messages_array);
-						}
-						//var_dump($to_send_messages_array);
+						}*/
+						//var_dump($up);
 						return $to_send_messages_array;	
 					}
 				else
@@ -175,26 +200,46 @@
 					{
 						
 						$user_id = $_SESSION['user']['id'];
-						$array = array(
+						/*$array = array(
 							'message' =>  $params["message"],
 							'to_send' => $params["to_send"],
 							'from_send' => $user_id,							
 							'create_time' => date('Y-m-d H:i:s'),
 							"id" => getRedis()->ZCOUNT("messages:$user_id","-inf","+inf")+1	
-							);
-						$encode_message =json_encode($array);
-						$message = $params["message"];
-						$to_send = $params["to_send"];
-						$from_send = $user_id;
-						$create_time = date('Y-m-d H:i:s');
+							);*/
+						//$encode_message =json_encode($array);
+							$to_send = $params["to_send"];
+							$create_time = date('Y-m-d H:i:s');
+						$firstKeyName = getRedis()->EXISTS("messages_$user_id/$to_send");
+						$secondKeyName = getRedis()->EXISTS("messages_$to_send/$user_id");
+						
+						$long = strtotime($create_time); //--> which results to 1332866820
+						$messagesHash = getRedis()->HMSET("message:1","message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'));
+						$getMessagesFromHashes= getRedis()->HGETALL("message:1");
+						$encode_message =json_encode($getMessagesFromHashes);
+						if ($firstKeyName == true) {
+							$messagesSortedSets = getRedis()->ZADD("messages_$user_id/$to_send",$long,$encode_message);
+							echo "pirmasKey";
+						}
+						elseif ($secondKeyName==true) {
+							$messagesSortedSets = getRedis()->ZADD("messages_$to_send/$user_id",$long,$encode_message);
+							echo "antrasKey";
+						}
+						else{
+							$messagesSortedSets = getRedis()->ZADD("messages_$user_id/$to_send",$long,$encode_message);
+							echo "treciasKey";
+						}
 
+						
 						//$redis->LPUSH("messages:$user_id",$test);
 						
-						var_dump($array);
-						getRedis()->ZADD("messages:$user_id",$params["to_send"],$encode_message);
+						
+						//var_dump($test2);
+						
+						//getRedis()->ZADD("messages:$user_id",$params["to_send"],$encode_message);
 						
 						/*$redis->HMSET("messages", "message $message" ,"to_send $to_send", "from_send $from_send", "create_time $create_time");*/
-						return $array;
+						return $getMessagesFromHashes;
 					}
 				else
 					{
