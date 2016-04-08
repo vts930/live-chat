@@ -62,18 +62,47 @@
 	}
 
 	function getAllUsers(){
-			
-			$user_id = $_SESSION['user']['id'];
-			$query = getDatabase()->prepare('
-				SELECT * FROM users WHERE id != :userId LIMIT 100
-			');
-			$query->bindValue(":userId", $user_id);
-			$query->execute();
 
-			return $query->fetchAll(PDO::FETCH_ASSOC);
-			
+			if (isRedis()) {
+				
+				//$ifExist = isRedis()-> EXISTS("users"); 
+				
+
+				if (isset($setUsersArrayRedis)) {
+
+					$getUsersArrayRedis = getRedis()->GET("users"); 
+					return $getUsersArrayRedis;
+				}
+				else
+				{
+					$user_id = $_SESSION['user']['id'];
+					$query = getDatabase()->prepare('
+						SELECT * FROM users WHERE id != :userId LIMIT 20000
+					');
+					$query->bindValue(":userId", $user_id);
+					$query->execute();
+					$usersArray= $query->fetchAll(PDO::FETCH_ASSOC);
+					$encodeUsersArray = json_encode($usersArray);
+					$setUsersArrayRedis = getRedis()->SET("users", $encodeUsersArray); 
+					$getUsersArrayRedis = getRedis()->GET("users"); 
+           			$decodeUsersArrayRedis = json_decode($getUsersArrayRedis,true);
+          
+           
+					return $decodeUsersArrayRedis;
+				}
+
+			}
+
+			else{	
+				$user_id = $_SESSION['user']['id'];
+				$query = getDatabase()->prepare('
+					SELECT * FROM users WHERE id != :userId LIMIT 20000
+				');
+				$query->bindValue(":userId", $user_id);
+				$query->execute();							
+				return $$query->fetchAll(PDO::FETCH_ASSOC);
+			}
 	}
-
 	function getAllMessagesByUser($from_send){
 				
 				if (isRedis()) 
@@ -83,8 +112,8 @@
 						$to=$user_id+1;						
 						$from2=$from_send -1 ;	
 						$to2=$from_send +1 ;
-						$to_send_messages = getRedis()->ZRANGEBYSCORE("messages","($from","($to");
-						$to_send_messages2 = getRedis()->ZRANGEBYSCORE("messages","($from2","($to2");
+						$to_send_messages = getRedis()->ZRANGEBYSCORE("messages:$user_id","($from2","($to2");
+						$to_send_messages2 = getRedis()->ZRANGEBYSCORE("messages:$from_send","($from","($to");
 						$to_send_messages_array = array();
 						foreach ($to_send_messages as $to_send_message) 
 						{
@@ -95,6 +124,16 @@
 						{
 							$decodes_to_send_message = json_decode($to_send_message,true);					
 							array_push($to_send_messages_array, $decodes_to_send_message);				
+						}
+						
+						if ($to_send_messages_array) {
+						
+						
+						foreach ($to_send_messages_array as $key => $row) {
+						    $volume[$key]  = $row['create_time'];
+						    
+						}
+						array_multisort($volume, SORT_ASC, $to_send_messages_array);
 						}
 						//var_dump($to_send_messages_array);
 						return $to_send_messages_array;	
@@ -141,7 +180,7 @@
 							'to_send' => $params["to_send"],
 							'from_send' => $user_id,							
 							'create_time' => date('Y-m-d H:i:s'),
-							"id" => getRedis()->ZCOUNT("messages","-inf","+inf")+1	
+							"id" => getRedis()->ZCOUNT("messages:$user_id","-inf","+inf")+1	
 							);
 						$encode_message =json_encode($array);
 						$message = $params["message"];
@@ -152,7 +191,7 @@
 						//$redis->LPUSH("messages:$user_id",$test);
 						
 						var_dump($array);
-						getRedis()->ZADD("messages",$params["to_send"],$encode_message);
+						getRedis()->ZADD("messages:$user_id",$params["to_send"],$encode_message);
 						
 						/*$redis->HMSET("messages", "message $message" ,"to_send $to_send", "from_send $from_send", "create_time $create_time");*/
 						return $array;
@@ -190,7 +229,7 @@
 						
 						
 						$user_id = $_SESSION['user']['id'];
-						$messages=getRedis()->ZRANGE("messages",0,-1);
+						$messages=getRedis()->ZRANGE("messages:$user_id",0,-1);
 						$testarray=array();
 						foreach ($messages as $messagesdecode) {
 							$decodemessages = json_decode($messagesdecode,true);
