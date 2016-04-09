@@ -38,7 +38,7 @@
         }
       });
     });
-    var last_message_id = $('.message_block').last().data("message-id");
+    //var last_message_id = $('.message_block').last().data("message-id");
     setInterval(function(){
       $.ajax({
         url: 'actions/get_new_message_action.php',
@@ -53,6 +53,6 @@
 
         }
       });
-    }, 1000);
+    }, 10*3600);
   });
 </script>
