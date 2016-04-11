@@ -2,92 +2,72 @@
 
 
 	function getLastConnections(){
-		
-		/*$query = getDatabase()->prepare('
-			SELECT 
-				uc.first_user_id, 
-				uc.second_user_id, 
-				u.user_name,
-				u.user_lastname,
-				u.user_image 
-			FROM Users_connections AS uc
-			LEFT JOIN Users AS u ON uc.second_user_id = u.user_id 
-			WHERE uc.first_user_id = :userId
-		');
-		$query->bindValue(":userId", $user_id);
-		$query->execute();
 
-		return $query->fetchAll(PDO::FETCH_ASSOC);*/
-
-		/*SELECT 
-				m.id,
-				m.message,
-				m.create_time,
-				u.first_name AS to_first_name,
-				u.last_name AS to_last_name,
-				m.to_send,
-				m.from_send
-			FROM messages AS m 
-			LEFT JOIN users AS u ON u.id = m.from_send
-			WHERE m.to_send = :userId OR m.from_send = :userId
-			GROUP BY u.id
-			ORDER BY m.create_time*/
-
-
+		if (isRedis()) {
 		$user_id = $_SESSION['user']['id'];
-		$query = getDatabase()->prepare('
-			SELECT
-				u.id,
-				u.first_name,
-				u.last_name,
-				u.avatar,
-				(
-					SELECT 
-						m.message 
-					FROM messages AS m 
-					WHERE 
-						(m.to_send = :userId AND m.from_send = u.id) 
-						OR 
-						(m.to_send = u.id AND m.from_send = :userId) 
-					ORDER BY m.create_time DESC 
-					LIMIT 1
-				) AS last_message
-			FROM users AS u
-			WHERE u.id IN(SELECT IF(m.to_send != :userId, m.to_send, m.from_send) FROM messages AS m WHERE m.to_send = :userId OR m.from_send = :userId GROUP BY m.to_send, m.from_send ORDER BY m.create_time DESC) AND u.id != :userId
-		');
-		$query->bindValue(":userId", $user_id);
-		$query->execute();
+		$getAllUserConnections= getRedis()->KEYS("messages_*$user_id*");	
+		var_dump($getAllUserConnections);
+		}
+		else
+		{
+			$user_id = $_SESSION['user']['id'];
+			$query = getDatabase()->prepare('
+				SELECT
+					u.id,
+					u.first_name,
+					u.last_name,
+					u.avatar,
+					(
+						SELECT 
+							m.message 
+						FROM messages AS m 
+						WHERE 
+							(m.to_send = :userId AND m.from_send = u.id) 
+							OR 
+							(m.to_send = u.id AND m.from_send = :userId) 
+						ORDER BY m.create_time DESC 
+						LIMIT 1
+					) AS last_message
+				FROM users AS u
+				WHERE u.id IN(SELECT IF(m.to_send != :userId, m.to_send, m.from_send) FROM messages AS m WHERE m.to_send = :userId OR m.from_send = :userId GROUP BY m.to_send, m.from_send ORDER BY m.create_time DESC) AND u.id != :userId
+			');
+			$query->bindValue(":userId", $user_id);
+			$query->execute();
+			
+			return $query->fetchAll(PDO::FETCH_ASSOC);
+		}
 		
-		return $query->fetchAll(PDO::FETCH_ASSOC);
 	}
 
 	function getAllUsers(){
 
 			if (isRedis()) {
 				
-				//$ifExist = isRedis()-> EXISTS("users"); 
+				$ifExist = getRedis()-> EXISTS("users"); 
 					
 
-				if (isset($setUsersArrayRedis)) {
+				if ($ifExist==true) {
+					echo("isredis");
 					$getUsersArrayRedis = getRedis()->GET("users"); 
-					return $getUsersArrayRedis;
+					$decodeUsersArrayRedis = json_decode($getUsersArrayRedis,true);
+					return $decodeUsersArrayRedis;
 				}
 				else
 				{
+					echo ("is mysql");
 					$user_id = $_SESSION['user']['id'];
 					$query = getDatabase()->prepare('
-						SELECT * FROM users WHERE id != :userId LIMIT 100
+						SELECT * FROM users WHERE id != :userId LIMIT 1000
 					');
 					$query->bindValue(":userId", $user_id);
 					$query->execute();
-					
-					/*$encodeUsersArray = json_encode($usersArray);
+					$usersArray = $query->fetchAll(PDO::FETCH_ASSOC);	
+					$encodeUsersArray=	json_encode($usersArray);
 					$setUsersArrayRedis = getRedis()->SET("users", $encodeUsersArray); 
 					$getUsersArrayRedis = getRedis()->GET("users"); 
-           			$decodeUsersArrayRedis = json_decode($getUsersArrayRedis,true);*/
-          
-           
-					return $query->fetchAll(PDO::FETCH_ASSOC);
+           			$decodeUsersArrayRedis = json_decode($getUsersArrayRedis,true);
+          			  
+					return $decodeUsersArrayRedis;
 				}
 
 			}
@@ -95,11 +75,11 @@
 			else{	
 				$user_id = $_SESSION['user']['id'];
 				$query = getDatabase()->prepare('
-					SELECT * FROM users WHERE id != :userId LIMIT 100
+					SELECT * FROM users WHERE id != :userId LIMIT 1000
 				');
 				$query->bindValue(":userId", $user_id);
 				$query->execute();							
-				return $$query->fetchAll(PDO::FETCH_ASSOC);
+				return $query->fetchAll(PDO::FETCH_ASSOC);
 			}
 	}
 	function getAllMessagesByUser($from_send){
@@ -108,61 +88,26 @@
 					{				
 							
 						$user_id = $_SESSION['user']['id'];
-						/*$from=$user_id-1;
-						$to=$user_id+1;						
-						$from2=$from_send -1 ;	
-						$to2=$from_send +1 ;*/
-
-							//$up =getRedis()->ZRANGEBYSCORE("messages_$user_id/$from_send",0,-1);
 						$firstKeyName = getRedis()->EXISTS("messages_$user_id/$from_send");
 						$secondKeyName = getRedis()->EXISTS("messages_$from_send/$user_id");
 						$to_send_messages_array = array();
 						if ($firstKeyName == true) {
-							$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$user_id/$from_send", 0, -1);
-							
-							
-							echo "pirmasGETKey";
-							foreach ($getAllConnectionsMesages as $getAllConnectionMessage) {
-								$decodes_to_send_message = json_decode($getAllConnectionMessage,true);
-								array_push($to_send_messages_array, $decodes_to_send_message);
-							}
+						$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$user_id/$from_send", 0, -1);							
+						foreach ($getAllConnectionsMesages as $getAllConnectionMessage) {
+							$decodes_to_send_message = json_decode($getAllConnectionMessage,true);
+							array_push($to_send_messages_array, $decodes_to_send_message);
 						}
-						elseif ($secondKeyName==true) {
+					}
+						elseif ($secondKeyName==true){ 
 							$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$from_send/$user_id", 0, -1);
-							echo "antrasGETKey";
+							
 							foreach ($getAllConnectionsMesages as $getAllConnectionMessage) 
 							{
 								$decodes_to_send_message = json_decode($getAllConnectionMessage,true);
 								array_push($to_send_messages_array, $decodes_to_send_message);
 							}
 						}		
-						
-						
-/*							
-						$to_send_messages = getRedis()->ZRANGEBYSCORE("messages:$user_id","($from2","($to2");
-						$to_send_messages2 = getRedis()->ZRANGEBYSCORE("messages:$from_send","($from","($to");
-						$to_send_messages_array = array();
-						foreach ($to_send_messages as $to_send_message) 
-						{
-							$decodes_to_send_message = json_decode($to_send_message,true);
-							array_push($to_send_messages_array, $decodes_to_send_message);				
-						}
-						foreach ($to_send_messages2 as $to_send_message) 
-						{
-							$decodes_to_send_message = json_decode($to_send_message,true);					
-							array_push($to_send_messages_array, $decodes_to_send_message);				
-						}
-						
-						if ($to_send_messages_array) {
-						
-						
-						foreach ($to_send_messages_array as $key => $row) {
-						    $volume[$key]  = $row['create_time'];
-						    
-						}
-						array_multisort($volume, SORT_ASC, $to_send_messages_array);
-						}*/
-						//var_dump($up);
+				
 						return $to_send_messages_array;	
 					}
 				else
@@ -205,6 +150,7 @@
 						$firstKeyName = getRedis()->EXISTS("messages_$user_id/$to_send");
 						$secondKeyName = getRedis()->EXISTS("messages_$to_send/$user_id");
 						$long = strtotime($create_time);									
+						
 						if ($firstKeyName == true) {
 							$messagesCount = getRedis()->ZCOUNT("messages_$user_id/$to_send","-inf","+inf" );
 							$hashesId = getRedis()->EXISTS("message_$user_id/$to_send:$messagesCount");
@@ -212,34 +158,41 @@
 							{
 								$messagesCount = $messagesCount+1;
 							}
-
-							$messagesHash = getRedis()->HMSET("message_$user_id/$to_send:$messagesCount","id",$messagesCount,"message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'));
+							
+							$fromFirstName = getRedis()->HGET("User:$user_id","first_name");
+							$fromLastName = getRedis()->HGET("User:$user_id","last_name");
+							$messagesHash = getRedis()->HMSET("message_$user_id/$to_send:$messagesCount","id",$messagesCount,"message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'),"to_first_name",$fromFirstName,"to_last_name","$fromLastName");
 							$getMessagesFromHashes= getRedis()->HGETALL("message_$user_id/$to_send:$messagesCount");
 							$encode_message =json_encode($getMessagesFromHashes);
 							$messagesSortedSets = getRedis()->ZADD("messages_$user_id/$to_send",$long,$encode_message);
 
 						}
-						elseif ($secondKeyName==true) {
+						elseif ($secondKeyName==true) 
+						{
 							$messagesCount = getRedis()->ZCOUNT("messages_$to_send/$user_id","-inf","+inf");
 							$hashesId = getRedis()->EXISTS("message_$to_send/$user_id:$messagesCount");
 							if ($hashesId==true) 
 							{
 								$messagesCount = $messagesCount+1;
 							}					
-
-							$messagesHash = getRedis()->HMSET("message_$to_send/$user_id:$messagesCount","id",$messagesCount,"message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'));
+							$fromFirstName = getRedis()->HGET("User:$user_id","first_name");
+							$fromLastName = getRedis()->HGET("User:$user_id","last_name");
+							$messagesHash = getRedis()->HMSET("message_$to_send/$user_id:$messagesCount","id",$messagesCount,"message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'),"to_first_name",$fromFirstName,"to_last_name","$fromLastName");
 							$getMessagesFromHashes= getRedis()->HGETALL("message_$to_send/$user_id:$messagesCount");
 							$encode_message =json_encode($getMessagesFromHashes);
 							$messagesSortedSets = getRedis()->ZADD("messages_$to_send/$user_id",$long,$encode_message);						
 						}
-						else{
+						else
+						{
 							$messagesCount = getRedis()->ZCOUNT("messages_$to_send/$user_id","-inf","+inf");
 							$hashesId = getRedis()->EXISTS("message_$to_send/$user_id:$messagesCount");
 							if ($hashesId==true) 
 							{
 								$messagesCount = $messagesCount+1;
-							}	
-							$messagesHash = getRedis()->HMSET("message_$user_id/$to_send:$messagesCount","id",$messagesCount,"message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'));
+							}
+							$fromFirstName = getRedis()->HGET("User:$user_id","first_name");
+							$fromLastName = getRedis()->HGET("User:$user_id","last_name");
+							$messagesHash = getRedis()->HMSET("message_$user_id/$to_send:$messagesCount","id",$messagesCount,"message",$params["message"],"to_send",$params["to_send"],"from_send",$user_id,"create_time",date('Y-m-d H:i:s'),"to_first_name",$fromFirstName,"to_last_name","$fromLastName");
 							$getMessagesFromHashes= getRedis()->HGETALL("message_$user_id/$to_send:$messagesCount");
 							$encode_message =json_encode($getMessagesFromHashes);
 							$messagesSortedSets = getRedis()->ZADD("messages_$user_id/$to_send",$long,$encode_message);
@@ -293,26 +246,23 @@
 	function getLastMessagesByUser($params){
 		
 		if (isRedis()) {
-			/*$user_id = $params['id'];
+			$user_id = $_SESSION['user']['id'];
 			$to_send = $params['from_send'];
-			//echo $user_id;
-			//echo $to_send;
-		 	$firstKeyName = getRedis()->EXISTS("message:$user_id/$to_send");
-			$secondKeyName = getRedis()->EXISTS("message:$to_send/$user_id");
+		 	$firstKeyName = getRedis()->EXISTS("messages_$user_id/$to_send");
+			$secondKeyName = getRedis()->EXISTS("messages_$to_send/$user_id");
+			$last_message_id = $params['last_message_id'];
 			if ($firstKeyName == true) 
-			{
-				$getMessagesFromHashes= getRedis()->HGETALL("message:$user_id/$to_send");
-				//var_dump($getMessagesFromHashes); 
-				return $getMessagesFromHashes;
+			{				
+				$newMessages_count = getRedis()->ZCOUNT("messages_$user_id/$to_send","-inf","+inf");	
+				$getAllMessages = getRedis()->ZRANGE("messages_$user_id/$to_send",(int)$last_message_id+1,(int)$newMessages_count);
+				return $getAllMessages;
 			}
-			elseif ($secondKeyName==true) 
-			{
-				$getMessagesFromHashes= getRedis()->HGETALL("message:$to_send/$user_id");
-				
-				//var_dump($getMessagesFromHashes); 
-				return $getMessagesFromHashes;
-			}*/
-
+			elseif ($secondKeyName == true) 
+			{				
+				$newMessages_count = getRedis()->ZCOUNT("messages_$to_send/$user_id","-inf","+inf");	
+				$getAllMessages = getRedis()->ZRANGE("messages_$to_send/$user_id",(int)$last_message_id+1,(int)$newMessages_count);
+				return $getAllMessages;
+			}
 		} 	
 
 		 else{

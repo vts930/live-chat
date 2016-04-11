@@ -6,9 +6,12 @@
 		$last_message_id = (int)$_POST["last_message_id"];
 		$user_id = $_SESSION['user']['id'];
 		$from_send = (int)$_POST["from_send"];
-		$messages = getLastMessagesByUser(array('last_message_id' => $last_message_id, 'from_send' => $from_send,'id'=>$user_id));
+		$messages = getLastMessagesByUser(array('last_message_id' => $last_message_id, 'from_send' => $from_send));
 		?>
         <?php foreach ($messages as $message): ?>
+	       <?php if (isRedis()):?>
+	       <?php $message =json_decode($message,true); ?>
+	       <?php endif ?>
 	      <?php if ($message["from_send"] == $user_id): ?>
 	        <?php include("../blocks/message/right_message.php") ?>
 	      <?php else: ?>

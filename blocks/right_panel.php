@@ -1,12 +1,23 @@
 <div class="col-sm-4 col-md-3 sidebar" style=" max-height:500px; overflow: scroll;">
   <div class="panel panel-default col-sm-12" style="padding:0 !important;" >
     <div class="panel-heading"><h4>Prisijungę vartotojai</h4></div>
-      <?php $starttime =microtime(true); ?>
+    <?php $start =microtime(true); ?>
       <?php $all_users = getAllUsers() ?>
-      <?php $endtime=microtime(true); ?>
-      <?php $diff = $endtime - $starttime; ?>
-      <?php  var_dump($diff) ?>
+      
+      <?php $endtime = microtime(true); 
+      $diff = $endtime-$start;
+      echo  $diff;
+      ?>
       <?php foreach($all_users AS $user):?>
+      <?php 
+        /*$id = $user['id'];
+        $first_name = $user['first_name'];
+        $last_name = $user['last_name'];
+        $password = $user['password'];
+        $email = $user['email'];
+        $avatar = $user['avatar'];
+        $users = getRedis()->HMSET("User:$id","first_name",$first_name,"last_name",$last_name,"password",$password,"email",$email,"avatar",$avatar);*/
+      ?>
         <div class="media">
           <div class="media-left media-top">
             <img style="width:40px; height:auto;" class="media-object" src='images/<?php echo $user["avatar"] ?>' alt="...">

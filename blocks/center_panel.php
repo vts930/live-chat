@@ -38,7 +38,7 @@
         }
       });
     });
-    //var last_message_id = $('.message_block').last().data("message-id");
+    var last_message_id = $('.message_block').last().data("message-id");
     setInterval(function(){
       $.ajax({
         url: 'actions/get_new_message_action.php',
@@ -50,9 +50,8 @@
           $("#message_block").append($data);
           last_message_id = $('.message_block').last().data("message-id");
            $("#message_block").animate({ scrollTop: $('#message_block')[0].scrollHeight }, "slow");
-
         }
       });
-    }, 10*3600);
+    },1000);
   });
 </script>

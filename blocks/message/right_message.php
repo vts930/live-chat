@@ -2,7 +2,7 @@
   	<div class="panel-heading">
 		
 			<?php 
-			//echo $message['to_first_name']." ".$message['to_last_name'] ?>
+			echo $message['to_first_name']." ".$message['to_last_name'] ?>
 		</h6> 
 	</div>
 	<div class="panel-body ">
