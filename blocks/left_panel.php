@@ -2,15 +2,23 @@
   <div class="panel panel-default col-sm-12" style="padding:0 !important;" >
     <div class="panel-heading"><h4>Naujausi susirašinėjimai</h4></div>
     <?php $last_connections = getLastConnections() ?>
+
     <?php foreach($last_connections AS $connection): ?>
-      <a href="index.php?to_send=<?php echo $connection['id'] ?>">
+    <?php        
+          $connectionsFromSets = getRedis()->ZRANGE($connection,"0","1");
+          foreach ($connectionsFromSets as $connectionFromSet) {
+              $connection = json_decode($connectionFromSet,true);
+         }
+      ?>
+
+      <a href="index.php?to_send=<?php echo (int)$connection['to_send'] ?>">
         <div class="media">
           <div class="media-left media-top">
-            <img style="width:40px; height:auto;" class="media-object" src='images/<?php echo $connection["avatar"] ?>' alt="...">
+            
           </div>
           <div class="media-body">
-            <h5 class="media-heading"><?php echo $connection["first_name"]." ".$connection["last_name"] ?></h5>
-            <h6><?php echo $connection["last_message"] ?></h6>
+            <h5 class="media-heading"><?php echo $connection["from_first_name"]." ".$connection["from_last_name"] ?><span class="badge">3</span></h5>
+            <h6><?php echo $connection["message"] ?></h6>
           </div>
         </div>
       </a>
