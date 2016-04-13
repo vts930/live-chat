@@ -6,11 +6,10 @@
 		if (isRedis()) {
 		$user_id = $_SESSION['user']['id'];
 		$getAllUserConnections= getRedis()->KEYS("messages_*$user_id*");	
-		 return $getAllUserConnections;
+		return $getAllUserConnections;
 			
 		}
 
-	
 		else
 		{
 			$user_id = $_SESSION['user']['id'];
@@ -43,12 +42,9 @@
 	}
 
 	function getAllUsers(){
-
-	
-				echo ("is mysql pirma karta");
 				$user_id = $_SESSION['user']['id'];
 				$query = getDatabase()->prepare('
-					SELECT * FROM users LIMIT 100
+					SELECT * FROM users LIMIT 1000
 				');
 				$query->bindValue(":userId", $user_id);
 				$query->execute();							

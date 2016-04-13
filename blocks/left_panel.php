@@ -5,10 +5,13 @@
 
     <?php foreach($last_connections AS $connection): ?>
     <?php        
+          if (isRedis()) {
           $connectionsFromSets = getRedis()->ZRANGE($connection,"0","1");
           foreach ($connectionsFromSets as $connectionFromSet) {
               $connection = json_decode($connectionFromSet,true);
          }
+          }
+          
       ?>
 
       <a href="index.php?to_send=<?php echo (int)$connection['to_send'] ?>">
