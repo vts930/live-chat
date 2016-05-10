@@ -1,6 +1,7 @@
 <div class="panel panel-default col-sm-6" style="padding:0 !important;" >
   <div class="panel-heading"><h4><?php echo (isset($_GET['to_send']) ? GetUserInfoById($_GET['to_send'])['first_name'] : $_SESSION['user']['first_name']); ?></h4></div>
   <div id="message_block" class="panel panel-default col-sm-12" style="min-height:350px;max-height:400px;padding-top:20px; padding-bottom:20px; margin-bottom:0 !important; border:none!important;  overflow:scroll;">  
+    <?php  $start =microtime(true);  ?>
     <?php $messages = getAllMessagesByUser($to_send_message) 
 
     ?>
@@ -11,6 +12,9 @@
         <?php include("message/left_message.php") ?>
       <?php endif ?>
     <?php endforeach ?>
+    <?php $endtime = microtime(true);
+$diff = $endtime-$start;
+echo  $diff;    ?>
   </div>
 
   <form id="new_message_form" class="col-sm-12" style="background-color:#033B8E; margin-top:20px; padding-bottom:20px;">
@@ -32,12 +36,14 @@
       .done(function($data) {
         if ($.trim($data) != "") {
              $("#message_block").append($data);
-             $("#message").val("");
              $("#message_block").animate({ scrollTop: $('#message_block')[0].scrollHeight }, "slow");
 
         }
+        $("#message").val("");
       });
     });
+
+
     var last_message_id = $('.message_block').last().data("message-id");
     setInterval(function(){
       $.ajax({
@@ -53,5 +59,25 @@
         }
       });
     },1000);
+
+    $(document).on('click', '.action-button', function(event) {
+      var that = $(this);
+      switch(that.data("action")){
+        case "delete":
+          $.ajax({
+            url: 'actions/delete_messages_action.php',
+            type: 'POST',
+            data: {message_id: that.data('message-id'), 'to_send': <?php echo $to_send_message ?>},
+          })
+          .done(function(data) {
+            data = $.parseJSON(data);
+            if(data.remove == 1){
+              that.parents(".message_block").remove();
+            }
+          });
+          
+        break;
+      }
+    });
   });
 </script>

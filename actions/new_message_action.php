@@ -7,5 +7,7 @@
 		$to_send = (int)$_POST["to_send"];
 
 		$message = saveNewMessage(array('message' => $new_message, 'to_send' => $to_send));?>
-        <?php include("../blocks/message/right_message.php") ?>
+		<?php if (!isRedis()): ?>
+        	<?php include("../blocks/message/right_message.php") ?>
+		<?php endif ?>
 	<?php endif; ?>

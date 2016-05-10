@@ -3,6 +3,7 @@
 		
 			<?php echo $message['to_first_name']." ".$message['to_last_name'] ?>
 		</h6> 
+		<span class="glyphicon glyphicon-remove action-button" id="delete" style="float:right;" data-message-id="<?php echo $message['id'] ?>" data-action="delete"></span>
 	</div>
 	<div class="panel-body ">
 		<span><i><?php echo $message["create_time"]; ?></i></span>

@@ -9,13 +9,10 @@
 		$messages = getLastMessagesByUser(array('last_message_id' => $last_message_id, 'from_send' => $from_send));
 		?>
         <?php foreach ($messages as $message): ?>
-	       <?php if (isRedis()):?>
-	       <?php $message =json_decode($message,true); ?>
-	       <?php endif ?>
 	      <?php if ($message["from_send"] == $user_id): ?>
 	        <?php include("../blocks/message/right_message.php") ?>
 	      <?php else: ?>
 	        <?php include("../blocks/message/left_message.php") ?>
 	      <?php endif ?>
 	    <?php endforeach ?>
-	<?php endif; ?>
+	<?php endif;
