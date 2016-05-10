@@ -8,5 +8,6 @@
 			echo json_encode(array('remove' => 1));
 		}else{
 			echo json_encode(array('remove' => 0));
+
 		}
 	endif;

@@ -3,7 +3,7 @@ session_start();
 ini_set('display_startup_errors',1);
 ini_set('display_errors',1);
 error_reporting(-1);
-$UseRedis =false;
+$UseRedis =true;
 $db = new PDO('mysql:host=localhost;dbname=baigiamasis;charset=utf8', 'root', 'tarakonas');
 //$db = new PDO('mysql:host=localhost;dbname=u606861065_bbd;charset=utf8', 'u606861065_bbd', 'vgtubakalauras');
 if ($UseRedis == true) {

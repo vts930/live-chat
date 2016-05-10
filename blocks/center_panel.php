@@ -2,9 +2,7 @@
   <div class="panel-heading"><h4><?php echo (isset($_GET['to_send']) ? GetUserInfoById($_GET['to_send'])['first_name'] : $_SESSION['user']['first_name']); ?></h4></div>
   <div id="message_block" class="panel panel-default col-sm-12" style="min-height:350px;max-height:400px;padding-top:20px; padding-bottom:20px; margin-bottom:0 !important; border:none!important;  overflow:scroll;">  
     <?php  $start =microtime(true);  ?>
-    <?php $messages = getAllMessagesByUser($to_send_message) 
-
-    ?>
+    <?php $messages = getAllMessagesByUser($to_send_message)?>
     <?php foreach ($messages as $message): ?>
       <?php if ($message["from_send"] == $_SESSION['user']['id']): ?>
         <?php include("message/right_message.php") ?>
@@ -45,6 +43,9 @@ echo  $diff;    ?>
 
 
     var last_message_id = $('.message_block').last().data("message-id");
+    if(!last_message_id){
+      last_message_id = -1;
+    }
     setInterval(function(){
       $.ajax({
         url: 'actions/get_new_message_action.php',
@@ -67,7 +68,7 @@ echo  $diff;    ?>
           $.ajax({
             url: 'actions/delete_messages_action.php',
             type: 'POST',
-            data: {message_id: that.data('message-id'), 'to_send': <?php echo $to_send_message ?>},
+            data: {message_id: that.data('message-id'), 'to_send': <?php echo $to_send_message ?> ,'message':that.data('message')},
           })
           .done(function(data) {
             data = $.parseJSON(data);
