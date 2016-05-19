@@ -2,8 +2,8 @@
 include_once("config.php");
 include_once("functions.php");
  $start =microtime(true); 
-for ($i=1550; $i <1600; $i++) { 
-	for ($k=1550; $k <1600; $k++) { 
+for ($i=1900; $i <1950; $i++) { 
+	for ($k=1900; $k <1950; $k++) { 
 	
 		//$user_id = $_SESSION['user']['id'];
 		$user_id = $i;

@@ -1,6 +1,6 @@
 <div class="panel panel-default col-sm-6" style="padding:0 !important;" >
   <div class="panel-heading"><h4><?php echo (isset($_GET['to_send']) ? GetUserInfoById($_GET['to_send'])['first_name'] : $_SESSION['user']['first_name']); ?></h4></div>
-  <div id="message_block" class="panel panel-default col-sm-12" style="min-height:350px;max-height:400px;padding-top:20px; padding-bottom:20px; margin-bottom:0 !important; border:none!important;  overflow:scroll;">  
+  <div id="message_block" class="panel panel-default col-sm-12" style="min-height:290px;max-height:330px;padding-top:20px; padding-bottom:20px; margin-bottom:0 !important; border:none!important;  overflow:scroll;">  
     <?php  $start =microtime(true);  ?>
     <?php $messages = getAllMessagesByUser($to_send_message)?>
     <?php foreach ($messages as $message): ?>
@@ -12,13 +12,13 @@
     <?php endforeach ?>
     <?php $endtime = microtime(true);
 $diff = $endtime-$start;
-echo  $diff;    ?>
+echo  "<i>$diff</i>"?>
   </div>
 
   <form id="new_message_form" class="col-sm-12" style="background-color:#033B8E; margin-top:20px; padding-bottom:20px;">
-    <textarea class="form-control " id="message" name="message" rows="4" style="margin-top:10px;" placeholder="Message"></textarea> 
+    <textarea class="form-control " id="message" name="message" rows="4" style="margin-top:10px;  resize: none;" placeholder="Message"></textarea> 
     <input type="hidden" name="to_send" value="<?php echo $to_send_message ?>" />
-    <button type="button" id="send" class="btn btn-default">Siųsti žinutę</button>
+    <button type="button" id="send" class="btn btn-info col-md-12" style="margin-top: 5px;">Siųsti žinutę</button>
   </form>
 </div>
 

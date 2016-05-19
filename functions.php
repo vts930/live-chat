@@ -2,6 +2,20 @@
 	function getLastConnections()
 	{
 
+		$user_id = $_SESSION['user']['id'];
+		$query = getDatabase()->prepare('
+				SELECT
+					*
+				FROM messages
+				WHERE from_send = :userId 
+				GROUP BY to_send
+				LIMIT 6				
+			');
+			$query->bindValue(":userId", $user_id);
+			$query->execute();
+			
+			return $query->fetchAll(PDO::FETCH_ASSOC);
+
 			/*$user_id = $_SESSION['user']['id'];
 			$query = getDatabase()->prepare('
 				SELECT
@@ -27,7 +41,7 @@
 			$query->execute();
 			
 			return $query->fetchAll(PDO::FETCH_ASSOC);*/
-			return array();
+			//return array();
 		
 	}
 
@@ -52,7 +66,7 @@
 						
 						if ($firstKeyName == true) 
 						{
-							echo "Naudojamas Redis";
+							echo "<i>Naudojamas Redis</i>";
 							$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$user_id/$from_send", 0, -1);							
 							foreach ($getAllConnectionsMesages as $getAllConnectionMessage) 
 							{
@@ -61,7 +75,7 @@
 							}
 						}
 						elseif ($secondKeyName==true){ 
-							echo "Naudojamas Redis";
+							echo "<i>Naudojamas Redis</i>";
 							$getAllConnectionsMesages = getRedis() ->ZRANGE("messages_$from_send/$user_id", 0, -1);
 							
 							foreach ($getAllConnectionsMesages as $getAllConnectionMessage) 
@@ -72,7 +86,7 @@
 						}		
 						else
 						{					
-						 	echo "Sukuriamas naujas redis Sorted Sets";
+						 	echo "<i>Sukuriamas naujas Redis Sorted Sets</i>";
 							$user_id = $_SESSION['user']['id'];
 							$query = getDatabase()->prepare('
 								SELECT 
@@ -110,6 +124,7 @@
 					}
 				else
 					{
+						echo "<i>Kraunama iš MySQL</i>";
 						$user_id = $_SESSION['user']['id'];
 						$query = getDatabase()->prepare('
 							SELECT 
@@ -382,10 +397,8 @@
 		$to_send = $params['to_send'];
 		
 			$getMessagesFromCache= getRedis()->ZRANGE("messages_$user_id/$to_send",0 ,-1);		
-		//var_dump($getMessagesFromCache); die;
 			$tmp = array();
 			foreach ($getMessagesFromCache as $getMessageFromCache) {
-				//var_dump($getMessageFromCache); die;// tai pridek tai sakau nesugalvojau kaip :D 
 				$getMessage =json_decode($getMessageFromCache,true);
 				if($getMessage['is_from_db'] == 0){
 					$query = getDatabase()->prepare('
@@ -401,20 +414,10 @@
 					$query->bindValue(":create_time",  $getMessage['create_time']);
 					$query->bindValue(":to_first_name",  $getMessage['to_first_name']);
 					$query->bindValue(":to_last_name",  $getMessage['to_last_name']);
-					$query->bindValue(":from_first_name",  $getMessage['from_first_name']); //ntai ju nera dbr db? ar ne? :D  prie ko cia db? nes kashas is db viskas dabar nu bet kai kesuoja tai neirasytas sitas man atrodo
-					$query->bindValue(":from_last_name",  $getMessage['from_last_name']); //butini
+					$query->bindValue(":from_first_name",  $getMessage['from_first_name']); 
+					$query->bindValue(":from_last_name",  $getMessage['from_last_name']); 
 					$query->execute();
-					//kartoja, pries tai nekartojo, nes neveike uzklausa :D :DDDDDDDD nu kitaip veike :D 
-					//o tai kodel ten negalim palik message-id ir paskui kad testu nuo tmp???
-					//? man atrodo neveikia del va sito
-					//cia viskas veikia
-					//reikia papildomo parametro item_from_db kokio nors ir jeigu 0 tai reiskia reikia irasyti i db, jeigu 1 tai nereikia, ble nu gal,
-					//pala mes us gecu nueinam iki kofee in ir parasyiu :D 
-					//kuar jus? :D MKIC atlek :D 
-					//ka gecas daro? aprasyma
-					//jasna// ogal geir
-			//kur kesuoji?
-					//kodel neprideda?s, ai sito nesugalvojau kaip issivest va sitoj vietoj
+			
 					$tmp[$getMessage['id']] = getDatabase()->lastInsertId();
 				}else{
 					$tmp[$getMessage['id']] = $getMessage['id'];
@@ -423,7 +426,7 @@
 			$query = getDatabase()->prepare('
 				DELETE FROM `messages` WHERE id=:message_id
 			');
-			$query->bindValue(":message_id", $tmp[$params['message_id']]); //getMessage sitoj vietoj neegzistuoja
+			$query->bindValue(":message_id", $tmp[$params['message_id']]); 
 			$query->execute();
 			getRedis()->DEL("messages_$user_id/$to_send");
 			getRedis()->DEL("messages_$to_send/$user_id");

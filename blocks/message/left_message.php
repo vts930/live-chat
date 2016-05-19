@@ -1,12 +1,9 @@
 <div class="panel panel-default col-sm-7 message_block" data-message-id="<?php echo $message['id'] ?>" style="float:left; padding:0 !important; background-color:#044BB5; color:#fff;" >
-	<div class="panel-heading">
-		
-			<?php echo $message['to_first_name']." ".$message['to_last_name'] ?>
-		</h6> 
-		<span class="glyphicon glyphicon-remove action-button" id="delete" style="float:right;" data-message-id="<?php echo $message['id'] ?>" data-action="delete"></span>
+	<div class="panel-heading">		
+		<strong><?php echo $message['to_first_name']." ".$message['to_last_name'] ?></strong>
 	</div>
 	<div class="panel-body ">
-		<span><i><?php echo $message["create_time"]; ?></i></span>
+		<span style="font-size: 11px;"><i><?php echo $message["create_time"]; ?></i></span>
 		<br>
 		<span>
 			<?php echo $message["message"]; ?>
